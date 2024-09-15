@@ -3,6 +3,10 @@ import { z } from 'zod';
 import { parseWithZod } from '@conform-to/zod';
 import { getFormProps, getInputProps, useForm } from '@conform-to/react';
 import type { ActionFunctionArgs } from '@remix-run/node';
+import { setTimeout } from 'node:timers/promises';
+import { Button } from '~/components/ui/button';
+import { Label } from '~/components/ui/label';
+import { Input } from '~/components/ui/input';
 
 const schema = z.discriminatedUnion('intent', [
   z.object({
@@ -25,6 +29,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return { lastResult: submission.reply({ resetForm: true }), value: null };
   }
 
+  await setTimeout(100);
+
   return {
     lastResult: submission.reply({ resetForm: true }),
     value: submission.value,
@@ -45,9 +51,9 @@ export default function Index() {
         <h1>Thank you!</h1>
         <pre>{JSON.stringify(isSubmitted, null, 2)}</pre>
         <form method="POST">
-          <button name="intent" value="reset" type="submit">
+          <Button name="intent" value="reset" type="submit">
             Submit Another
-          </button>
+          </Button>
         </form>
       </div>
     );
@@ -56,24 +62,24 @@ export default function Index() {
   return (
     <Form method="POST" {...getFormProps(form)}>
       <div>
-        <label htmlFor={email.id}>Email</label>
-        <input {...getInputProps(email, { type: 'text' })} />
-        <div id={email.errorId} className="text-red-500 text-sm">
+        <Label htmlFor={email.id}>Email</Label>
+        <Input {...getInputProps(email, { type: 'text' })} />
+        <div id={email.errorId} className="text-destructive text-sm">
           {email.errors}
         </div>
       </div>
 
       <div>
-        <label htmlFor={name.id}>Name</label>
-        <input {...getInputProps(name, { type: 'text' })} />
-        <div id={name.errorId} className="text-red-500 text-sm">
+        <Label htmlFor={name.id}>Name</Label>
+        <Input {...getInputProps(name, { type: 'text' })} />
+        <div id={name.errorId} className="text-destructive text-sm">
           {name.errors}
         </div>
       </div>
 
-      <button name="intent" value="submit" type="submit">
+      <Button name="intent" value="submit" type="submit">
         Submit
-      </button>
+      </Button>
     </Form>
   );
 }
