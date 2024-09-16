@@ -11,11 +11,9 @@ import type { ActionFunctionArgs } from '@remix-run/node';
 import { setTimeout } from 'node:timers/promises';
 import { Button } from '~/components/ui/button';
 import { Label } from '~/components/ui/label';
-import { Textarea } from '~/components/ui/textarea';
 import { Input } from '~/components/ui/input';
-import { Stack, HStack } from '~/components/ui/stack';
+import { Stack } from '~/components/ui/stack';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/alert';
-import { Checkbox } from '~/components/ui/checkbox';
 import {
   Card,
   CardTitle,
@@ -26,11 +24,8 @@ import {
 
 export const contactFormSchema = z.object({
   name: z.string().max(100),
-  company: z.string().max(100).optional(),
-  phone: z.string().max(20).optional(),
   email: z.string().max(100).email(),
-  message: z.string().max(10000),
-  privacyPolicy: z.string().transform((value) => value === 'on'),
+  secret: z.string(),
 });
 
 type ContactFormData = z.infer<typeof contactFormSchema>;
@@ -70,21 +65,12 @@ export const ContactSentMessage = ({ data }: { data: ContactFormData }) => {
     <Card>
       <CardContent>
         <CardTitle>Message has been sent</CardTitle>
-        <CardDescription>
-          お問い合わせありがとうございます。 以下のメッセージを受付けました。
-          お返事をお待ち下さい。
-        </CardDescription>
+        <CardDescription>Thank you!</CardDescription>
         <div className="grid max-h-96 w-full max-w-md grid-cols-[auto_1fr] justify-items-start gap-4 overflow-auto rounded p-4">
-          <div>お名前</div>
+          <div>name</div>
           <div>{data.name}</div>
-          <div>会社名</div>
-          <div>{data.company}</div>
-          <div>電話番号</div>
-          <div>{data.phone}</div>
-          <div>メールアドレス</div>
+          <div>email</div>
           <div>{data.email}</div>
-          <div>メッセージ</div>
-          <div>{data.message}</div>
         </div>
 
         <CardFooter>
@@ -108,14 +94,16 @@ type ContactFormProps = React.HTMLAttributes<HTMLFormElement>;
 export const ContactForm = ({ children, ...rest }: ContactFormProps) => {
   const fetcher = useFetcher<typeof action>({ key: 'contact' });
   const actionData = fetcher.data;
-  const [form, { name, company, phone, email, message, privacyPolicy }] =
-    useForm({
-      lastResult: actionData?.lastResult,
-      constraint: getZodConstraint(schema),
-      onValidate: ({ formData }) => parseWithZod(formData, { schema }),
-      shouldValidate: 'onSubmit',
-      shouldRevalidate: 'onInput',
-    });
+  const [form, { name, email }] = useForm({
+    lastResult: actionData?.lastResult,
+    constraint: getZodConstraint(schema),
+    onValidate: ({ formData }) => {
+      console.log('formData', Object.fromEntries(formData.entries()));
+      return parseWithZod(formData, { schema });
+    },
+    shouldValidate: 'onSubmit',
+    shouldRevalidate: 'onInput',
+  });
 
   if (actionData?.value?.intent === 'submit') {
     return <ContactSentMessage data={actionData.value} />;
@@ -125,75 +113,18 @@ export const ContactForm = ({ children, ...rest }: ContactFormProps) => {
     <fetcher.Form method="POST" {...rest} {...getFormProps(form)}>
       <Stack>
         <div>
-          <Label htmlFor={name.id}>お名前</Label>
-          <Input
-            autoComplete="name"
-            {...getInputProps(name, { type: 'text' })}
-          />
+          <Label htmlFor={name.id}>name</Label>
+          <Input {...getInputProps(name, { type: 'text' })} />
           <div id={name.errorId} className="text-red-500">
             {name.errors}
           </div>
         </div>
 
         <div>
-          <Label htmlFor={company.id}>会社名</Label>
-          <Input
-            autoComplete="organization"
-            {...getInputProps(company, { type: 'text' })}
-          />
-          <div id={company.errorId} className="text-red-500">
-            {company.errors}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor={phone.id}>電話番号</Label>
-          <Input
-            autoComplete="tel"
-            {...getInputProps(phone, { type: 'tel' })}
-          />
-          <div id={phone.errorId} className="text-red-500">
-            {phone.errors}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor={email.id}>メール</Label>
-          <Input
-            autoComplete="email"
-            {...getInputProps(email, { type: 'email' })}
-          />
+          <Label htmlFor={email.id}>email</Label>
+          <Input {...getInputProps(email, { type: 'email' })} />
           <div id={email.errorId} className="text-red-500">
             {email.errors}
-          </div>
-        </div>
-
-        <div>
-          <Label htmlFor={message.id}>メッセージ</Label>
-          <Textarea autoComplete="off" {...getTextareaProps(message)} />
-          <div id={message.errorId} className="text-red-500">
-            {message.errors}
-          </div>
-        </div>
-
-        <div>
-          <HStack className="items-center">
-            <Checkbox
-              id={privacyPolicy.id}
-              name={privacyPolicy.name}
-              aria-invalid={privacyPolicy.errors ? true : undefined}
-              aria-describedby={
-                privacyPolicy.errors ? privacyPolicy.errorId : undefined
-              }
-              defaultChecked={privacyPolicy.initialValue === 'on'}
-              aria-label="privacy"
-            />
-            <label htmlFor={privacyPolicy.id} className="cursor-pointer">
-              プライバシーポリシーに同意する
-            </label>
-          </HStack>
-          <div id={privacyPolicy.errorId} className="text-red-500">
-            {privacyPolicy.errors}
           </div>
         </div>
 
@@ -204,13 +135,15 @@ export const ContactForm = ({ children, ...rest }: ContactFormProps) => {
           </Alert>
         )}
 
+        <input form={form.id} type="hidden" name="secret" value="123" />
+
         <Button
           type="submit"
           name="intent"
           value="submit"
           disabled={fetcher.state === 'submitting'}
         >
-          Let's talk
+          Submit
         </Button>
 
         <div>{JSON.stringify(form.allErrors)}</div>
